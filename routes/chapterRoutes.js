@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User'); // استدعاء موديل المستخدم
 const authMiddleware = require('../middleware/authMiddleware'); // الميدلوير للتحقق من التوكن
-
 // مسار الاشتراك في فصل محدد
 router.post('/:chapterId/subscribe', authMiddleware, async (req, res) => {
   try {
