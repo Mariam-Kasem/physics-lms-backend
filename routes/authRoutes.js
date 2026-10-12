@@ -3,36 +3,29 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const authMiddleware = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret123', { expiresIn: '30d' });
 };
 
-// مسار إنشاء الحساب
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, parentPhone, password, grade, governorate } = req.body;
 
-    // 1. التأكد من وجود البيانات المطلوبة
     if (!name || !phone || !parentPhone || !password) {
       return res.status(400).json({ message: 'يرجى إرسال جميع الحقول المطلوبة.' });
     }
 
-    // 2. التحقق من عدم تكرار الهاتف
     const userExists = await User.findOne({ phone });
     if (userExists) {
       return res.status(400).json({ message: 'رقم الهاتف هذا مسجل به حساب بالفعل.' });
     }
 
-    // 3. تشفير كلمة المرور
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 4. توليد كود طالب فريد ومضمون
     const studentCode = 'PHY-' + Math.floor(100000 + Math.random() * 900000);
 
-    // 5. إنشاء المستخدم
     const user = await User.create({
       name,
       phone,
@@ -55,13 +48,10 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Registration Error Details:', error);
-    return res.status(500).json({ 
-      message: error.message || 'حدث خطأ في السيرفر أثناء التسجيل' 
-    });
+    return res.status(500).json({ message: error.message || 'حدث خطأ في السيرفر أثناء التسجيل' });
   }
 });
 
-// مسار تسجيل الدخول
 router.post('/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
@@ -93,8 +83,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// جلب بيانات البروفايل للمستخدم المسجل
-router.get('/profile', authMiddleware, async (req, res) => {
+router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
